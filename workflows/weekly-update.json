@@ -1,0 +1,377 @@
+{
+  "name": "weekly update fixed two",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "weekly-update",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "1c2f1374-5fc9-4ef0-91c5-2570b4eb5cae",
+      "name": "Receive Weekly Update Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "8708ca6c-831b-436b-baa4-6c6dbd0e8831"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || $input.first().json;\n\nconst cap = str => str ? str.charAt(0).toUpperCase() + str.slice(1) : '';\n\nconst months = ['January','February','March','April','May','June','July','August','September','October','November','December'];\n\nlet formatted_week_ending = b.week_ending || '';\ntry {\n  if (b.week_ending) {\n    const dt = new Date(b.week_ending + 'T00:00:00');\n    if (!isNaN(dt.getTime())) {\n      formatted_week_ending = dt.getDate() + ' ' + months[dt.getMonth()] + ' ' + dt.getFullYear();\n    }\n  }\n} catch(e) {}\n\nconst now = new Date();\n\nreturn [{\n  json: {\n    freelancer_name: cap(b.freelancer_name),\n    freelancer_email: b.freelancer_email || '',\n    client_name: cap(b.client_name),\n    client_email: b.client_email || '',\n    project_name: cap(b.project_name),\n    work_done: b.work_done || '',\n    next_steps: b.next_steps || '',\n    blockers: b.blockers || 'None',\n    completion: b.completion || '0',\n    week_ending: b.week_ending || '',\n    formatted_week_ending: formatted_week_ending,\n    date_sent: now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear()\n  }\n}];"
+      },
+      "id": "f0373898-a090-43bc-9651-b99b3c80302e",
+      "name": "Format Update Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "groqApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "appilication/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"model\":\"llama-3.3-70b-versatile\",\"max_tokens\":100,\"messages\":[{\"role\":\"system\",\"content\":\"You are a freelancer writing a very short weekly update. Maximum 2 sentences only. No more. Natural and human. Use I. No greeting. No sign-off.\"},{\"role\":\"user\",\"content\":\"={{ 'Write exactly 2 sentences about this week. Completed: ' + $json.work_done + '. Keep it short and natural.' }}\"}]}",
+        "options": {}
+      },
+      "id": "4eb8224d-c2c0-498f-ab13-d4b862a22a88",
+      "name": " Write Update",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        448,
+        0
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "6rqLtOtcNuwwwVoW",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $('Format Update Data').first().json;\n\nconst updateText = $input.first().json.update_text \n  || ($input.first().json.choices && $input.first().json.choices[0]?.message?.content)\n  || '';\n\nconst months = ['January','February','March','April','May','June','July','August','September','October','November','December'];\nlet formattedWeekEnding = d.formatted_week_ending || '';\nif (!formattedWeekEnding && d.week_ending) {\n  try {\n    const dt = new Date(d.week_ending + 'T00:00:00');\n    if (!isNaN(dt.getTime())) {\n      formattedWeekEnding = dt.getDate() + ' ' + months[dt.getMonth()] + ' ' + dt.getFullYear();\n    }\n  } catch(e) {}\n}\nif (!formattedWeekEnding) formattedWeekEnding = d.week_ending || '';\n\nconst openingParagraph = updateText || 'Made good progress this week on ' + (d.work_done || 'the project') + '.';\n\nconst html = '<!DOCTYPE html><html><head><meta charset=\"UTF-8\"></head><body style=\"margin:0;padding:40px 20px;background:#ffffff;\">'\n  + '<div style=\"max-width:600px;margin:0 auto;\">'\n  + '<div style=\"padding:0 20px;\">'\n  + '<p style=\"font:700 11px/1 sans-serif;letter-spacing:4px;text-transform:uppercase;color:#999;margin:0 0 12px;\">WEEKLY UPDATE</p>'\n  + '<h1 style=\"font:700 32px/1.1 sans-serif;color:#111;margin:0 0 8px;\">' + (d.project_name || '') + '</h1>'\n  + '<p style=\"color:#999;font:14px/1 sans-serif;margin:0 0 32px;\">Week ending ' + formattedWeekEnding + '</p>'\n  + '<hr style=\"border:none;border-top:2px solid #111;margin:0 0 32px;\">'\n  + '<p style=\"margin:0 0 8px;color:#111;font:16px/1 sans-serif;\">Hi ' + (d.client_name || '') + ',</p>'\n  + '<p style=\"margin:0 0 32px;color:#444;font:16px/1.7 sans-serif;\">' + openingParagraph + '</p>'\n  + '<p style=\"margin:0 0 16px;color:#999;font:12px/1 sans-serif;letter-spacing:2px;text-transform:uppercase;\">This week\\'s progress</p>'\n  + '<table style=\"width:100%;border-collapse:collapse;\">'\n  + '<tr style=\"border-top:1px solid #eee;\"><td style=\"padding:14px 0;color:#999;font:13px/1 sans-serif;width:40%;\">Project Progress</td><td style=\"padding:14px 0;color:#111;font:700 14px/1 sans-serif;\">' + (d.completion || '0') + '% Complete</td></tr>'\n  + '<tr style=\"border-top:1px solid #eee;\"><td style=\"padding:14px 0;color:#999;font:13px/1 sans-serif;vertical-align:top;\">This Week</td><td style=\"padding:14px 0;color:#111;font:14px/1.5 sans-serif;\">' + (d.work_done || '') + '</td></tr>'\n  + '<tr style=\"border-top:1px solid #eee;\"><td style=\"padding:14px 0;color:#999;font:13px/1 sans-serif;vertical-align:top;\">Next Week</td><td style=\"padding:14px 0;color:#111;font:14px/1.5 sans-serif;\">' + (d.next_steps || '') + '</td></tr>'\n  + '<tr style=\"border-top:1px solid #eee;border-bottom:1px solid #eee;\"><td style=\"padding:14px 0;color:#999;font:13px/1 sans-serif;vertical-align:top;\">Blockers</td><td style=\"padding:14px 0;color:#111;font:14px/1.5 sans-serif;\">' + (d.blockers || 'None') + '</td></tr>'\n  + '</table>'\n  + '<p style=\"margin:32px 0;color:#444;font:16px/1.7 sans-serif;\">If you have any questions or want to catch up, feel free to reach out anytime.</p>'\n  + '<p style=\"font:14px/1 sans-serif;color:#444;margin:0 0 4px;\">Best regards,</p>'\n  + '<p style=\"font:700 16px/1 sans-serif;color:#111;margin:0;\">' + (d.freelancer_name || '') + '</p>'\n  + '</div>'\n  + '</div></body></html>';\n\nreturn [{\n  json: {\n    html: html,\n    freelancer_name: d.freelancer_name || '',\n    freelancer_email: d.freelancer_email || '',\n    client_name: d.client_name || '',\n    client_email: d.client_email || '',\n    project_name: d.project_name || '',\n    completion: d.completion || '0',\n    week_ending: d.week_ending || '',\n    formatted_week_ending: d.formatted_week_ending || formattedWeekEnding || '',\n    date_sent: d.date_sent || '',\n    work_done: d.work_done || '',\n    next_steps: d.next_steps || '',\n    blockers: d.blockers || 'None'\n  }\n}];"
+      },
+      "id": "451c74ed-d569-40f3-a2fc-068b1c7659f0",
+      "name": "Build Update Email HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.client_email }}",
+        "subject": "=Weekly Update - {{ $json.project_name }}\n",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "ca619171-e16e-4da6-a1a5-50c78dd7ad33",
+      "name": "Send Weekly Update to Client",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        896,
+        0
+      ],
+      "webhookId": "ae88b722-1d65-4cad-9fa3-11e7541212e1",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cP39swVotEWfzdPL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Build Update Email HTML').first().json.freelancer_email }}",
+        "subject": "=Update sent — {{ $('Build Update Email HTML').first().json.project_name }} — {{ $('Build Update Email HTML').first().json.client_name }}",
+        "message": "=<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:40px;color:#111111\"><p style=\"font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#16a34a;margin-bottom:20px\">UPDATE SENT</p><h1 style=\"font-size:22px;font-weight:400;margin-bottom:24px\">Weekly update delivered to {{ $('Build Update Email HTML').first().json.client_name }}</h1><table style=\"width:100%;border-collapse:collapse;margin-bottom:24px\"><tr style=\"border-bottom:1px solid #eeeeee\"><td style=\"padding:10px 0;color:#999999;font-size:13px\">Project</td><td style=\"padding:10px 0;font-weight:600;text-align:right\">{{ $('Build Update Email HTML').first().json.project_name }}</td></tr><tr style=\"border-bottom:1px solid #eeeeee\"><td style=\"padding:10px 0;color:#999999;font-size:13px\">Sent to</td><td style=\"padding:10px 0;font-weight:600;text-align:right\">{{ $('Build Update Email HTML').first().json.client_email }}</td></tr><tr><td style=\"padding:10px 0;color:#999999;font-size:13px\">Progress</td><td style=\"padding:10px 0;font-weight:700;text-align:right\">{{ $('Build Update Email HTML').first().json.completion }}% complete</td></tr></table></div>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "b6c66f3b-fa08-43eb-b8ad-deab4a3f693e",
+      "name": "Notify Freelancer Sent",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        0
+      ],
+      "webhookId": "404e7685-ef6f-4de9-9a17-99a6a8600b2a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cP39swVotEWfzdPL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+          "mode": "list",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1180737931,
+          "mode": "list",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "date sent": "={{ $('Build Update Email HTML').item.json.date_sent }}",
+            "project": "={{ $('Build Update Email HTML').item.json.project_name }}",
+            "client name": "={{ $('Build Update Email HTML').item.json.client_name }}",
+            "client email": "={{ $('Build Update Email HTML').item.json.client_email }}",
+            "freelancer": "={{ $('Build Update Email HTML').item.json.freelancer_name }}",
+            "week ending": "={{ $('Build Update Email HTML').item.json.formatted_week_ending }}",
+            "completion": "={{ $('Build Update Email HTML').item.json.completion }}",
+            "status": "Sent",
+            "this week": "={{ $('Build Update Email HTML').item.json.work_done }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "date sent",
+              "displayName": "date sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "project",
+              "displayName": "project",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "client name",
+              "displayName": "client name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "client email",
+              "displayName": "client email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "freelancer",
+              "displayName": "freelancer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "week ending",
+              "displayName": "week ending",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "completion",
+              "displayName": "completion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "this week",
+              "displayName": "this week",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED"
+        }
+      },
+      "id": "ffe9ccee-afe9-44e4-b33e-da18ae57a0d6",
+      "name": " Log Update",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1344,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "DejyqSQtjLq8aEOA",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"success\", \"message\": \"Weekly update sent to your client successfully!\" }",
+        "options": {}
+      },
+      "id": "dfc959fc-308d-4863-b41a-e257dc3172a3",
+      "name": "Respond to Webhook4",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1568,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Receive Weekly Update Request": {
+      "main": [
+        [
+          {
+            "node": "Format Update Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Update Data": {
+      "main": [
+        [
+          {
+            "node": " Write Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    " Write Update": {
+      "main": [
+        [
+          {
+            "node": "Build Update Email HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Update Email HTML": {
+      "main": [
+        [
+          {
+            "node": "Send Weekly Update to Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Weekly Update to Client": {
+      "main": [
+        [
+          {
+            "node": "Notify Freelancer Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Freelancer Sent": {
+      "main": [
+        [
+          {
+            "node": " Log Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    " Log Update": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "fe04ff73-938a-48bd-b2bd-335544b90080",
+  "meta": {
+    "instanceId": "bbe63525abda93c4dffbb2bab32ee46dd97dc7395c0c926270cce113ce106012"
+  },
+  "nodeGroups": [],
+  "id": "JciwFidpi7ZuAH6e",
+  "tags": []
+}

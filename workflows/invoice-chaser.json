@@ -1,0 +1,521 @@
+{
+  "name": "Invoice generator fixed one",
+  "nodes": [
+    {
+      "parameters": {
+        "amount": 3,
+        "unit": "days"
+      },
+      "id": "acb8c83d-2c0a-4fe9-b913-27159dfcd8be",
+      "name": "Wait 3 Days",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        384,
+        176
+      ],
+      "webhookId": "cdbbf21d-3b94-4b3d-8878-4bc6af0d39cb"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Format Invoice Data').first().json.client_email }}",
+        "subject": "= Reminder - Invoice #{{ $('Format Invoice Data').first().json.invoice_number }} - Due {{ $('Format Invoice Data').first().json.due_date }}",
+        "message": "={{ '<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:40px;color:#111111\"><p style=\"font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#999999;margin-bottom:20px\">PAYMENT REMINDER</p><h1 style=\"font-size:24px;font-weight:600;margin-bottom:4px\">Invoice #' + $('Format Invoice Data').first().json.invoice_number + '</h1><p style=\"margin-bottom:24px\">Hi <strong>' + $('Format Invoice Data').first().json.client_name + '</strong>,</p><p style=\"margin-bottom:32px;color:#555\">I hope you are doing well. This is a friendly reminder that the following invoice is due for payment.</p><table style=\"width:100%;border-collapse:collapse;margin-bottom:32px\"><tr style=\"border-bottom:1px solid #eeeeee\"><td style=\"padding:12px 0;color:#999;font-size:14px\">Invoice</td><td style=\"padding:12px 0;font-weight:600;text-align:right\">#' + $('Format Invoice Data').first().json.invoice_number + '</td></tr><tr style=\"border-bottom:1px solid #eeeeee\"><td style=\"padding:12px 0;color:#999;font-size:14px\">Service</td><td style=\"padding:12px 0;font-weight:600;text-align:right\">' + $('Format Invoice Data').first().json.service + '</td></tr><tr style=\"border-bottom:1px solid #eeeeee\"><td style=\"padding:12px 0;color:#999;font-size:14px\">Amount Due</td><td style=\"padding:12px 0;font-weight:600;text-align:right\">' + $('Format Invoice Data').first().json.amount + '</td></tr><tr><td style=\"padding:12px 0;color:#999;font-size:14px\">Due Date</td><td style=\"padding:12px 0;font-weight:600;text-align:right\">' + $('Format Invoice Data').first().json.due_date + '</td></tr></table><p style=\"margin-bottom:8px\">If you have already processed this payment please ignore this message. If you have any questions please reply to this email.</p><p>Thank you,<br><strong>' + $('Format Invoice Data').first().json.freelancer_name + '</strong></p></div>' }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "e82ff258-f76b-4257-869e-8cdf7a23514d",
+      "name": "Gmail — Reminder",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        608,
+        176
+      ],
+      "webhookId": "312c9553-298c-4ba7-8f63-85794cc7af67",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cP39swVotEWfzdPL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 4,
+        "unit": "days"
+      },
+      "id": "0011a2f3-aa05-4037-be77-a1c4b6ef40c4",
+      "name": "Wait 4 More Days",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        832,
+        176
+      ],
+      "webhookId": "96d7f076-bbfe-4ca0-ae07-6fe1f442fbcb"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Format Invoice Data').first().json.client_email }}",
+        "subject": "=FINAL NOTICE - Invoice #{{ $('Format Invoice Data').first().json.invoice_number }} - Payment Required",
+        "message": "={{ '<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:40px;color:#111111\"><p style=\"font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#999999;margin-bottom:20px\">FINAL NOTICE</p><h1 style=\"font-size:24px;font-weight:600;margin-bottom:4px\">Invoice #' + $('Format Invoice Data').first().json.invoice_number + '</h1><p style=\"margin-bottom:24px\">Hi <strong>' + $('Format Invoice Data').first().json.client_name + '</strong>,</p><p style=\"margin-bottom:32px;color:#555\">This is a final notice regarding the following outstanding invoice. Immediate payment is required.</p><table style=\"width:100%;border-collapse:collapse;margin-bottom:32px\"><tr style=\"border-bottom:1px solid #eeeeee\"><td style=\"padding:12px 0;color:#999;font-size:14px\">Invoice</td><td style=\"padding:12px 0;font-weight:600;text-align:right\">#' + $('Format Invoice Data').first().json.invoice_number + '</td></tr><tr style=\"border-bottom:1px solid #eeeeee\"><td style=\"padding:12px 0;color:#999;font-size:14px\">Service</td><td style=\"padding:12px 0;font-weight:600;text-align:right\">' + $('Format Invoice Data').first().json.service + '</td></tr><tr style=\"border-bottom:1px solid #eeeeee\"><td style=\"padding:12px 0;color:#999;font-size:14px\">Amount Due</td><td style=\"padding:12px 0;font-weight:600;text-align:right\">' + $('Format Invoice Data').first().json.amount + '</td></tr><tr><td style=\"padding:12px 0;color:#999;font-size:14px\">Original Due Date</td><td style=\"padding:12px 0;font-weight:600;text-align:right\">' + $('Format Invoice Data').first().json.due_date + '</td></tr></table><p style=\"margin-bottom:8px\">Immediate payment is required to avoid further action on this account. If payment has already been sent, please disregard this notice, otherwise please respond today.</p><p>Regards,<br><strong>' + $('Format Invoice Data').first().json.freelancer_name + '</strong></p></div>' }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "96caa721-66af-43a4-955d-03f3c5d8bc11",
+      "name": "Gmail — Final Notice",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        1056,
+        176
+      ],
+      "webhookId": "037f5a8b-daee-4cd9-9eb1-8a285e185ac9",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cP39swVotEWfzdPL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+          "mode": "list",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1295114379,
+          "mode": "list",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "date sent": "={{ $('Format Invoice Data').item.json.date_sent }}",
+            "freelancer name": "={{ $('Format Invoice Data').item.json.freelancer_name }}",
+            "invoice number": "={{ $('Format Invoice Data').item.json.invoice_number }}",
+            "client name": "={{ $('Format Invoice Data').item.json.client_name }}",
+            "client email": "={{ $('Format Invoice Data').item.json.client_email }}",
+            "service": "={{ $('Format Invoice Data').item.json.service }}",
+            "due date": "={{ $('Format Invoice Data').item.json.due_date }}",
+            "amount": "={{ $('Format Invoice Data').item.json.amount }}",
+            "status": "={{ $('Format Invoice Data').item.json.status }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "date sent",
+              "displayName": "date sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "invoice number",
+              "displayName": "invoice number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "freelancer name",
+              "displayName": "freelancer name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "client name",
+              "displayName": "client name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "client email",
+              "displayName": "client email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "service",
+              "displayName": "service",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "amount",
+              "displayName": "amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "due date",
+              "displayName": "due date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "d9eef20b-aaac-4fa1-ac0d-6b8811dd68ba",
+      "name": "Invoices",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1280,
+        176
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "DejyqSQtjLq8aEOA",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Format Invoice Data').first().json.freelancer_email }}",
+        "subject": "=✅ Invoice Sent — {{ $('Format Invoice Data').item.json.client_name }} — {{ $('Format Invoice Data').item.json.amount }}",
+        "message": "={{ '<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:40px;color:#111111\"><p style=\"font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#16a34a;margin-bottom:20px\">INVOICE SENT</p><h1 style=\"font-size:22px;font-weight:600;margin-bottom:28px\">Invoice #' + $('Format Invoice Data').first().json.invoice_number + ' is on its way</h1><table style=\"width:100%;border-collapse:collapse;margin-bottom:32px\"><tr style=\"border-bottom:1px solid #eeeeee\"><td style=\"padding:12px 0;color:#999999;font-size:14px\">Client</td><td style=\"padding:12px 0;font-weight:600;text-align:right\">' + $('Format Invoice Data').first().json.client_name + '</td></tr><tr style=\"border-bottom:1px solid #eeeeee\"><td style=\"padding:12px 0;color:#999999;font-size:14px\">Invoice</td><td style=\"padding:12px 0;font-weight:600;text-align:right\">#' + $('Format Invoice Data').first().json.invoice_number + '</td></tr><tr style=\"border-bottom:1px solid #eeeeee\"><td style=\"padding:12px 0;color:#999999;font-size:14px\">Amount</td><td style=\"padding:12px 0;font-weight:700;font-size:20px;text-align:right\">' + $('Format Invoice Data').first().json.amount + '</td></tr><tr style=\"border-bottom:1px solid #eeeeee\"><td style=\"padding:12px 0;color:#999999;font-size:14px\">Service</td><td style=\"padding:12px 0;font-weight:600;text-align:right\">' + $('Format Invoice Data').first().json.service + '</td></tr><tr><td style=\"padding:12px 0;color:#999999;font-size:14px\">Due Date</td><td style=\"padding:12px 0;font-weight:600;text-align:right\">' + $('Format Invoice Data').first().json.due_date + '</td></tr></table><div style=\"background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:14px 18px\"><p style=\"color:#16a34a;margin:0;font-size:14px\">Automatic reminders will fire on Day 4 and Day 8 if unpaid.</p></div></div>' }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "b1532fda-a278-4196-b76f-b3cc02597809",
+      "name": "Gmail — Notify Me",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        160,
+        176
+      ],
+      "webhookId": "69d2e1d6-0904-4575-bd92-112b854aa10f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cP39swVotEWfzdPL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"success\", \"message\": \"Invoice sent and follow-up sequence started!\" }",
+        "options": {}
+      },
+      "id": "d0b64b63-db33-4838-bc39-a1019c4ccf6c",
+      "name": "Respond to Webhook2",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1504,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "invoice-chaser",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "3dbbddd7-6c14-427d-8d73-33c6fb4a220f",
+      "name": "Receive Invoice Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -960,
+        176
+      ],
+      "webhookId": "6f9a4ed6-fd01-4144-acd1-102ffb92657a"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || $input.first().json;\nconst cap = str => str ? str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : '';\nreturn [{\n  json: {\n    freelancer_name: cap(b.freelancer_name),\n    freelancer_email: b.freelancer_email || '',\n    client_name: cap(b.client_name),\n    client_email: b.client_email || '',\n    invoice_number: b.invoice_number || '',\n    amount: b.amount || '',\n    service: b.service || '',\n    due_date: b.due_date || '',\n    urgency: b.urgency || 'gentle',\n    freelancer_address: b.freelancer_address || '',\n    client_address: b.client_address || '',\n    tax_rate: b.tax_rate || '',\n    payment_method: b.payment_method || '',\n    date_sent: new Date().toLocaleDateString('en-US', {\n      year: 'numeric',\n      month: 'long',\n      day: 'numeric'\n    }),\n    status: 'Sent'\n  }\n}];"
+      },
+      "id": "2146e5e3-419a-4358-a7e5-3431a4191eb0",
+      "name": "Format Invoice Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -736,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $('Format Invoice Data').first().json;\nconst paymentMethod = d.payment_method || 'a method to be agreed';\n\nconst rawAmount = String(d.amount).replace(/[^0-9.]/g, '');\nconst subtotal = parseFloat(rawAmount) || 0;\nconst taxRate = parseFloat(d.tax_rate) || 0;\nconst taxAmount = Math.round((subtotal * taxRate / 100) * 100) / 100;\nconst total = Math.round((subtotal + taxAmount) * 100) / 100;\n\nconst fmt = n => '$' + n.toFixed(2);\n\nconst html = `<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><style>\n*{box-sizing:border-box;margin:0;padding:0}\nbody{font-family:Georgia,serif;color:#1a1a1a;padding:56px;background:#fff}\n.wrap{max-width:700px;margin:0 auto}\n\n.brand{font-size:30px;font-weight:700;letter-spacing:0.5px;color:#111}\n.brand-sub{font-size:12px;color:#999;margin-top:4px}\n.meta{text-align:right;font-size:12px;color:#999}\n.meta strong{display:block;font-size:14px;color:#111;margin-top:2px}\n\n.parties{display:flex;justify-content:space-between;margin-bottom:36px}\n.party{width:47%}\n.label{font-size:11px;font-weight:700;color:#4f46e5;letter-spacing:0.5px;margin-bottom:6px;text-transform:uppercase}\n.pname{font-size:15px;font-weight:700;margin-bottom:3px}\n.pdetail{font-size:13px;color:#555;line-height:1.6}\n\n.datesrow{display:flex;gap:40px;margin-bottom:32px}\n.dateitem .label{margin-bottom:4px}\n.dateval{font-size:14px;font-weight:700}\n\ntable.items{width:100%;border-collapse:collapse;margin-bottom:8px}\ntable.items th{text-align:left;font-size:11px;font-weight:700;color:#4f46e5;letter-spacing:0.5px;padding:0 0 10px;border-bottom:2px solid #4f46e5}\ntable.items th.r{text-align:right}\ntable.items td{padding:14px 0;font-size:14px;border-bottom:1px solid #eee}\ntable.items td.r{text-align:right;font-weight:600}\n\n.totals{margin-left:auto;width:240px;margin-top:16px}\n.totals table{width:100%;border-collapse:collapse}\n.totals td{padding:6px 0;font-size:13px;color:#555}\n.totals td.r{text-align:right}\n.totals .total-row td{border-top:2px solid #4f46e5;padding-top:12px;font-size:17px;font-weight:700;color:#111}\n\n.notes{margin-top:48px}\n.notes .label{margin-bottom:8px}\n.notes p{font-size:13px;color:#555;line-height:1.7;margin-bottom:6px}\n</style></head><body>\n<div class=\"wrap\">\n\n  <div class=\"top\">\n    <div>\n      <div class=\"brand\">INVOICE</div>\n      <div class=\"brand-sub\">#${d.invoice_number}</div>\n    </div>\n    <div class=\"meta\">Date Issued<strong>${d.date_sent}</strong></div>\n  </div>\n\n  <div class=\"parties\">\n    <div class=\"party\">\n      <div class=\"label\">From</div>\n      <div class=\"pname\">${d.freelancer_name}</div>\n      <div class=\"pdetail\">${d.freelancer_email}${d.freelancer_address ? '<br>' + d.freelancer_address : ''}</div>\n    </div>\n    <div class=\"party\" style=\"text-align:right\">\n      <div class=\"label\">To</div>\n      <div class=\"pname\">${d.client_name}</div>\n      <div class=\"pdetail\">${d.client_email}${d.client_address ? '<br>' + d.client_address : ''}</div>\n    </div>\n  </div>\n\n  <div class=\"datesrow\">\n    <div class=\"dateitem\"><div class=\"label\">Due Date</div><div class=\"dateval\">${d.due_date}</div></div>\n  </div>\n\n  <table class=\"items\">\n    <tr><th>Description</th><th class=\"r\">Amount</th></tr>\n    <tr><td>${d.service}</td><td class=\"r\">${fmt(subtotal)}</td></tr>\n  </table>\n\n  <div class=\"totals\">\n    <table>\n      <tr><td>Subtotal</td><td class=\"r\">${fmt(subtotal)}</td></tr>\n      ${taxRate > 0 ? `<tr><td>Tax (${taxRate}%)</td><td class=\"r\">${fmt(taxAmount)}</td></tr>` : ''}\n      <tr class=\"total-row\"><td>Total</td><td class=\"r\">${fmt(total)}</td></tr>\n    </table>\n  </div>\n\n  <div class=\"notes\">\n    <div class=\"label\">Notes</div>\n    <p>Thank you for your business.</p>\n    <p>Payment can be made via ${paymentMethod}. Please reply to this email for payment details or if you have any questions.</p>\n  </div>\n\n</div>\n</body></html>`;\n\nreturn [{ json: { ...d, html: html, calculated_total: fmt(total) } }];"
+      },
+      "id": "c607bb49-48c6-4a44-bbe7-5cba51fa94f5",
+      "name": "Build Invoice HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -512,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.html2pdf.app/v1/generate",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "appilication/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "html",
+              "value": "={{ $json.html }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "file",
+              "outputPropertyName": "invoice_pdf"
+            }
+          }
+        }
+      },
+      "id": "f7fa752c-e8f3-4a39-9d5e-0e32fcdf5eb2",
+      "name": "Generate Invoice PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -288,
+        176
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ERzfftoey6vUROWd",
+          "name": "html2pdf"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "= {{ $('Format Invoice Data').first().json.client_email }}",
+        "subject": "=Invoice #{{ $('Format Invoice Data').first().json.invoice_number }} - {{ $('Format Invoice Data').first().json.service }} - Due {{ $('Format Invoice Data').first().json.due_date }}",
+        "message": "={{ '<p>Hi ' + $('Format Invoice Data').first().json.client_name + ',</p><p>Please find your invoice attached. Let me know if you have any questions.</p><p>Thank you,<br>' + $('Format Invoice Data').first().json.freelancer_name + '</p>' }}",
+        "options": {
+          "appendAttribution": false,
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {
+                "property": "invoice_pdf"
+              }
+            ]
+          }
+        }
+      },
+      "id": "13749256-5734-4d94-9f75-d438f686be0b",
+      "name": "Send Initial Invoice",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        -64,
+        176
+      ],
+      "webhookId": "3760636c-c288-41fd-8df4-af7bdf631e82",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cP39swVotEWfzdPL",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Wait 3 Days": {
+      "main": [
+        [
+          {
+            "node": "Gmail — Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail — Reminder": {
+      "main": [
+        [
+          {
+            "node": "Wait 4 More Days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 4 More Days": {
+      "main": [
+        [
+          {
+            "node": "Gmail — Final Notice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail — Final Notice": {
+      "main": [
+        [
+          {
+            "node": "Invoices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Invoices": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail — Notify Me": {
+      "main": [
+        [
+          {
+            "node": "Wait 3 Days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receive Invoice Request": {
+      "main": [
+        [
+          {
+            "node": "Format Invoice Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Invoice Data": {
+      "main": [
+        [
+          {
+            "node": "Build Invoice HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Invoice HTML": {
+      "main": [
+        [
+          {
+            "node": "Generate Invoice PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Invoice PDF": {
+      "main": [
+        [
+          {
+            "node": "Send Initial Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Initial Invoice": {
+      "main": [
+        [
+          {
+            "node": "Gmail — Notify Me",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "e91ae01c-4a1b-42aa-9c35-ad6de0f6224f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bbe63525abda93c4dffbb2bab32ee46dd97dc7395c0c926270cce113ce106012"
+  },
+  "nodeGroups": [],
+  "id": "Qj3lbLArM0DYKrMv",
+  "tags": []
+}

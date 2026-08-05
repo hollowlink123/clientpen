@@ -1,0 +1,607 @@
+{
+  "name": "proposal geenrator with human in loop",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "5eb13a4d-c6a5-47f2-a880-c5f68692b58b",
+      "name": "Receive Proposal Request1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        128
+      ],
+      "webhookId": "ec917a00-9cad-4b0b-9317-1040533b6129"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || $input.first().json;\nconst cap = str => str ? str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : '';\nreturn [{\n  json: {\n    freelancer_name: cap(b.freelancer_name),\n    freelancer_email: b.freelancer_email || '',\n    client_name: cap(b.client_name),\n    client_email: b.client_email || '',\n    client_company: cap(b.client_company || ''),\n    service: cap(b.service || ''),\n    project_description: b.project_description || '',\n    deliverables: b.deliverables || '',\n    budget: b.budget || '',\n    deadline: b.deadline || '',\n    timeline: b.timeline || '',\n    bio: b.bio || '',\n    past_result: b.past_result || '',\n    portfolio_link: b.portfolio_link || '',\n    hourly_rate: b.hourly_rate || ''\n  }\n}];"
+      },
+      "id": "0fb211e2-7d4f-4258-b434-64211c203770",
+      "name": "Format Proposal Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "groqApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\"model\":\"llama-3.3-70b-versatile\",\"max_tokens\":1800,\"messages\":[{\"role\":\"system\",\"content\":\"You are an expert freelance proposal writer. CRITICAL RULE: the budget figure given to you is fixed and final, you must use that exact total in the Investment section and your itemized breakdown must add up to that exact total, never round it, never invent a different number. Write a winning freelance proposal focusing on the client problem and how you will solve it. Use the client own words from the project description. Never write generic statements. Always be specific. Include these 6 sections with clear headings: 1. UNDERSTANDING YOUR NEEDS restate the client problem in their own words in one short sentence, then add one concrete, specific insight about their industry or product type that goes beyond simply repeating what they said, for example naming a likely specific cause or comparing to a known pattern in that type of product. 2. MY APPROACH explain specifically how you will solve the problem step by step using numbered steps, not a dense paragraph. If a bio is provided below, you must weave one sentence of it naturally into this section, this is mandatory when a bio is given. If a past result is provided below, you must mention it naturally as proof, this is mandatory when a result is given. If a portfolio link is provided below, you must mention that examples of similar work are available at that link, this is mandatory when a link is given. Never invent a bio, result, or link that was not given, if none are given simply skip this credibility content and move on. 3. SCOPE AND DELIVERABLES list exactly what the client will receive as a clear list. 4. TIMELINE realistic schedule with specific week numbers for each milestone, not vague durations, and the timeline must match the deadline given if one is provided. 5. INVESTMENT break the exact total budget given into an itemized breakdown showing what each deliverable costs, the line items must add up exactly to the total budget given, not a different number. Always state specific payment terms such as 50 percent deposit upfront and 50 percent on completion, calculated from the actual total budget given, and state that the deposit invoice will follow once the proposal is accepted. State the number of included revisions plainly as a fact, for example Includes 2 rounds of revisions, never use defensive or apologetic phrasing like I believe this is generous. If an hourly rate is provided below, state that additional revisions are billed at that exact rate, if no rate is provided just say additional revisions billed separately at an hourly rate to be agreed upon acceptance. 6. NEXT STEPS give a simple, conversational call to action inviting the client to reply to this email if they would like to proceed, and mention that a contract and deposit invoice will follow once they confirm. Keep this light and low pressure, do not use formal acceptance language, do not ask them to reply with any specific word or phrase, this is not a signature or a binding agreement, it is just an invitation to move forward. Write in warm confident first person, like a real freelancer talking to a client, not like an AI or a template. Never use dash characters or em dashes anywhere in the writing, use commas or periods instead. No jargon. Focus on client outcomes not freelancer skills. Do not add any tool branding, watermark text, software name, or mention of what generated this proposal anywhere in the writing, not even in a footer or closing line. Keep it under 550 words total.\"},{\"role\":\"user\",\"content\":\"Freelancer: \" + $json.freelancer_name + \" Service: \" + $json.service + \" Client: \" + $json.client_name + \" Company: \" + $json.client_company + \" Project: \" + $json.project_description + \" Deliverables: \" + $json.deliverables + \" EXACT BUDGET TO USE (do not change this number): \" + $json.budget + \" Deadline: \" + $json.deadline + \" Bio (must include if not blank): \" + ($json.bio || \"none provided, do not mention a bio\") + \" Past result (must include if not blank): \" + ($json.past_result || \"none provided, do not mention a past result\") + \" Portfolio link (must include if not blank): \" + ($json.portfolio_link || \"none provided, do not mention a portfolio link\") + \" Hourly rate for extra revisions (use if not blank): \" + ($json.hourly_rate || \"none provided\") + \" Write a complete proposal with all 6 sections.\"}]} }}",
+        "options": {}
+      },
+      "id": "4d8b1de9-6d9e-4ec2-9acb-991608052097",
+      "name": "Write Proposal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        448,
+        128
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "6rqLtOtcNuwwwVoW",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const proposal = items[0].json.choices[0].message.content;\n\nconst formData = $('Format Proposal Data').first().json;\nif (!formData || !formData.freelancer_name) {\n  throw new Error('No form data found in Format Proposal Data1 node');\n}\n\nconst freelancerName = formData.freelancer_name;\nconst clientName = formData.client_name;\nif (!clientName) throw new Error('client_name missing in form data');\n\nconst freelancerEmail = formData.freelancer_email || '';\nconst clientEmail = formData.client_email || '';\nconst clientCompany = formData.client_company || '';\nconst service = formData.service || '';\nconst budget = formData.budget || '';\nconst deadline = formData.deadline || '';\n\nconst today = new Date().toLocaleDateString('en-US', {\n  year: 'numeric', month: 'long', day: 'numeric'\n});\n\nconst lines = proposal.split('\\n');\nlet htmlBody = '';\nlet inList = false;\nlet currentSection = '';\n\nfunction flushSection() {\n  if (inList) {\n    currentSection += '</ul>';\n    inList = false;\n  }\n  if (currentSection) {\n    htmlBody += '<table style=\"width:100%;border-collapse:collapse;margin:0;padding:0;\"><tr style=\"page-break-inside:avoid;\"><td style=\"padding:0;border:none;vertical-align:top;display:block;\">' + currentSection + '</td></tr></table>';\n    currentSection = '';\n  }\n}\n\nfor (const line of lines) {\n  const t = line.trim();\n\n  if (!t) {\n    if (inList) {\n      currentSection += '</ul>';\n      inList = false;\n    }\n    continue;\n  }\n\n  if (t.startsWith('## ')) {\n    flushSection();\n    currentSection = '<h2 style=\"color:#4f46e5;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-top:40px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #e5e7eb\">' + t.slice(3) + '</h2>';\n  }\n  else if (t.startsWith('# ')) {\n    currentSection += '<h1 style=\"font-size:24px;font-weight:400;margin:20px 0\">' + t.slice(2) + '</h1>';\n  }\n  else if (t.startsWith('- ') || t.startsWith('* ')) {\n    if (!inList) {\n      currentSection += '<ul>';\n      inList = true;\n    }\n    currentSection += '<li style=\"margin:6px 0;font-size:15px;color:#374151\">' + t.slice(2) + '</li>';\n  }\n  else if (t.match(/^\\d+\\./)) {\n    currentSection += '<p style=\"margin:10px 0;font-size:15px;color:#374151\"><strong>' + t + '</strong></p>';\n  }\n  else {\n    if (inList) {\n      currentSection += '</ul>';\n      inList = false;\n    }\n    currentSection += '<p style=\"margin:10px 0;font-size:15px;color:#374151\">' + t + '</p>';\n  }\n}\n\nif (inList) {\n  currentSection += '</ul>';\n  inList = false;\n}\n\ncurrentSection +=\n  '<div style=\"margin-top:32px;padding-top:20px;border-top:2px solid #111827\">' +\n  '<div style=\"font-size:14px;font-weight:700;color:#111827;margin-bottom:4px\">' + freelancerName + '</div>' +\n  '<div style=\"font-size:13px;color:#6b7280\">Independent Professional</div>' +\n  '</div>' +\n  '<div style=\"margin-top:20px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:11px;color:#9ca3af\">' +\n  '<span>Confidential. Prepared exclusively for ' + clientName + '</span>' +\n  '</div>';\n\nflushSection();\n\nconst html = '<!DOCTYPE html><html><head><meta charset=\"UTF-8\">' +\n  '<style>' +\n  '*{box-sizing:border-box;margin:0;padding:0}' +\n  'body{font-family:Georgia,serif;max-width:780px;margin:0 auto;color:#111827;line-height:1.8;padding:48px 56px;background:#fff}' +\n  '.header{padding-bottom:28px;margin-bottom:40px;border-bottom:3px solid #4f46e5}' +\n  '.header h1{font-size:32px;color:#111827;font-weight:400;margin-bottom:8px}' +\n  '.meta{color:#6b7280;font-size:13px;line-height:2}' +\n  'h2{color:#4f46e5;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-top:40px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #e5e7eb}' +\n  'p{margin:10px 0;font-size:15px;color:#374151}' +\n  'ul{margin:8px 0 8px 24px}' +\n  'li{margin:6px 0;font-size:15px;color:#374151}' +\n  'table{width:100%;border-collapse:collapse;margin:0;padding:0}' +\n  'td{padding:0;border:none;vertical-align:top;display:block}' +\n  '</style></head><body>' +\n  '<div class=\"header\">' +\n  '<h1>Project Proposal</h1>' +\n  '<div class=\"meta\">Prepared by <strong>' + freelancerName + '</strong><br>For <strong>' + clientName + (clientCompany ? ' (' + clientCompany + ')' : '') + '</strong><br>' + today + '</div>' +\n  '</div>' +\n  htmlBody +\n  '</body></html>';\n\nreturn [{ json: { html, freelancer_email: freelancerEmail, client_email: clientEmail, freelancer_name: freelancerName, client_name: clientName, client_company: clientCompany, service, budget, deadline } }];"
+      },
+      "id": "6d42e406-daeb-41e2-948b-c72656902940",
+      "name": " Build HTML Proposal",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.html2pdf.app/v1/generate",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "appilication/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "html",
+              "value": "={{ $json.html }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "proposal_pdf"
+            }
+          }
+        }
+      },
+      "id": "9b212db0-0d4a-49af-ab20-d46584090993",
+      "name": "Generate Proposal PDF1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        896,
+        128
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ERzfftoey6vUROWd",
+          "name": "html2pdf"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $(' Build HTML Proposal').item.json.freelancer_email }}",
+        "subject": "={{ 'Review your proposal for ' + $(' Build HTML Proposal').item.json.client_name + ' (' + $(' Build HTML Proposal').item.json.service + ')' }}",
+        "message": "={{ '<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:40px;color:#111111\"><p>Hi ' + $(' Build HTML Proposal').item.json.freelancer_name + ',</p><p>Your proposal for <strong>' + $(' Build HTML Proposal').item.json.client_name + '</strong> (' + $(' Build HTML Proposal').item.json.service + ', budget ' + $(' Build HTML Proposal').item.json.budget + ') is attached as a PDF for your review.</p><p>You will receive a separate approval email in a moment. Please review this PDF, then click Approve to send it to the client, or Reject to cancel.</p></div>' }}",
+        "options": {
+          "appendAttribution": false,
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {
+                "property": "proposal_pdf"
+              }
+            ]
+          }
+        }
+      },
+      "id": "45100cb6-6a4d-4379-a5e1-2c98d139bbff",
+      "name": "Send PDF to Freelancer",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        48
+      ],
+      "webhookId": "116c3aea-149d-4a30-a069-dfe4e6197a47",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cP39swVotEWfzdPL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"status\":\"success\",\"message\":\"Your proposal has been sent to {{ $(' Build HTML Proposal').item.json.freelancer_email }} for approval.\"}",
+        "options": {}
+      },
+      "id": "8f248420-f494-4d86-8e6d-8bc34ff7b45a",
+      "name": "Respond to Webhook7",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1344,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "={{ $(' Build HTML Proposal').item.json.freelancer_email }}",
+        "subject": "=Approve proposal for {{ $(' Build HTML Proposal').item.json.client_name }}?",
+        "message": "=<div style=\"font-family:sans-serif;max-width:520px;margin:0 auto\"><p>Hi <strong>{{ $(' Build HTML Proposal').item.json.freelancer_name }}</strong>,</p><p>Please review the proposal PDF sent in the previous email for <strong>{{ $(' Build HTML Proposal').item.json.client_name }}</strong> ({{ $(' Build HTML Proposal').item.json.service }}, budget {{ $(' Build HTML Proposal').item.json.budget }}).</p><p><strong>Approve</strong> to send it to the client at {{ $(' Build HTML Proposal').item.json.client_email }}, or <strong>Reject</strong> to cancel.</p></div>",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double",
+            "approveLabel": "Approve & Send to Client",
+            "disapproveLabel": "Reject"
+          }
+        },
+        "options": {}
+      },
+      "id": "35bf2ee9-dc7d-4b20-8d01-0614893776d0",
+      "name": "Approve Proposal",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1568,
+        48
+      ],
+      "webhookId": "d4b84b74-2ae5-4170-952b-f75b27c2d657",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cP39swVotEWfzdPL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "approved",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "0a787f34-553f-4ce6-ba93-7abdc22e397f",
+      "name": "Is Approved",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1792,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $(' Build HTML Proposal').item.json.freelancer_email }}",
+        "subject": "={{ 'Proposal for ' + $(' Build HTML Proposal').item.json.client_name + ' was rejected' }}",
+        "message": "={{ '<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:40px;color:#111111\"><p style=\"font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#dc2626;margin-bottom:20px\">PROPOSAL REJECTED</p><h1 style=\"font-size:22px;font-weight:600;margin-bottom:20px\">Your proposal for ' + $(' Build HTML Proposal').item.json.client_name + ' was rejected</h1><p style=\"font-size:14px;color:#374151\">The proposal for ' + $(' Build HTML Proposal').item.json.service + ' was reviewed and marked as rejected, so it was <strong>not</strong> sent to the client. Please revise it and submit again if needed.</p></div>' }}",
+        "options": {}
+      },
+      "id": "27727ea4-64e2-478a-ac5d-cfeff038a0b0",
+      "name": "Notify Freelancer Rejected",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        0
+      ],
+      "webhookId": "b6f06573-ad5d-4904-a034-fe1e21a7e805",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cP39swVotEWfzdPL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "b507efd5-7e32-45a6-b286-eabbaa84c752",
+      "name": "Reattach PDF",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2016,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $(' Build HTML Proposal').item.json.client_email }}",
+        "subject": "={{ 'Project Proposal — ' + $(' Build HTML Proposal').item.json.service + ' for ' + $(' Build HTML Proposal').item.json.client_name }}",
+        "message": "={{ '<p>Hi ' + $(' Build HTML Proposal').item.json.client_name + ',</p>' +\n'<p>Thanks for sharing the details on ' + $(' Build HTML Proposal').item.json.service + '. I have put together a proposal specifically addressing what you described, attached as a PDF.</p>' +\n'<p>Please review it carefully. If you are happy to proceed, simply reply to this email and I will send over the contract straight away.</p>' +\n'<p>Happy to answer any questions in the meantime.</p>' +\n'<p>Best regards,<br>' + $(' Build HTML Proposal').item.json.freelancer_name + '</p>' }}",
+        "options": {
+          "appendAttribution": false,
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {
+                "property": "proposal_pdf"
+              }
+            ]
+          }
+        }
+      },
+      "id": "7581efd3-990a-4a5e-9e1c-372202fdcaa1",
+      "name": "Send to Client",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        224
+      ],
+      "webhookId": "618065d9-87f0-4565-a955-40ef8ddfd6cd",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cP39swVotEWfzdPL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $(' Build HTML Proposal').item.json.freelancer_email }}",
+        "subject": "={{ 'Your proposal for ' + $(' Build HTML Proposal').item.json.client_name + ' has been sent ✓' }}",
+        "message": "={{ '<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:40px;color:#111111\"><p style=\"font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#16a34a;margin-bottom:20px\">PROPOSAL SENT</p><h1 style=\"font-size:22px;font-weight:600;margin-bottom:28px\">Your proposal for ' + $(' Build HTML Proposal').item.json.service + ' has been sent</h1><table style=\"width:100%;border-collapse:collapse;margin-bottom:32px\"><tr style=\"border-bottom:1px solid #eeeeee\"><td style=\"padding:12px 0;color:#999999;font-size:14px\">Client</td><td style=\"padding:12px 0;font-weight:600;text-align:right\">' + $(' Build HTML Proposal').item.json.client_name + '</td></tr><tr style=\"border-bottom:1px solid #eeeeee\"><td style=\"padding:12px 0;color:#999999;font-size:14px\">Service</td><td style=\"padding:12px 0;font-weight:600;text-align:right\">' + $(' Build HTML Proposal').item.json.service + '</td></tr><tr><td style=\"padding:12px 0;color:#999999;font-size:14px\">Budget</td><td style=\"padding:12px 0;font-weight:700;font-size:20px;text-align:right\">' + $(' Build HTML Proposal').item.json.budget + '</td></tr></table><div style=\"background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:14px 18px\"><p style=\"color:#16a34a;margin:0;font-size:14px\">Your proposal has been delivered to ' + $(' Build HTML Proposal').item.json.client_name + '. You will receive their reply directly in your inbox.</p></div></div>' }}",
+        "options": {}
+      },
+      "id": "935b52a4-8d5b-4411-a423-530b6b93460e",
+      "name": "Notify Freelancer Sent",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        2464,
+        224
+      ],
+      "webhookId": "ccd07792-fb49-478b-a692-111c1d5d1798",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cP39swVotEWfzdPL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+          "mode": "list",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "date sent": "={{ $now.toFormat('dd-MM-yyyy') }}",
+            "freelancer name": "={{ $(' Build HTML Proposal').item.json.freelancer_name }}",
+            "client name": "={{ $(' Build HTML Proposal').item.json.client_name }}",
+            "service": "={{ $(' Build HTML Proposal').item.json.service }}",
+            "budget": "={{ $(' Build HTML Proposal').item.json.budget }}",
+            "deadline": "={{ $(' Build HTML Proposal').item.json.deadline }}",
+            "client email": "={{ $(' Build HTML Proposal').item.json.client_email }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "date sent",
+              "displayName": "date sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "freelancer name",
+              "displayName": "freelancer name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "client name",
+              "displayName": "client name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "client email",
+              "displayName": "client email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "service",
+              "displayName": "service",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "budget",
+              "displayName": "budget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "deadline",
+              "displayName": "deadline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "4216260a-0e9f-42b6-97eb-7e569c48905a",
+      "name": "Log Contract",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        2688,
+        224
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "DejyqSQtjLq8aEOA",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Receive Proposal Request1": {
+      "main": [
+        [
+          {
+            "node": "Format Proposal Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Proposal Data": {
+      "main": [
+        [
+          {
+            "node": "Write Proposal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Proposal": {
+      "main": [
+        [
+          {
+            "node": " Build HTML Proposal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    " Build HTML Proposal": {
+      "main": [
+        [
+          {
+            "node": "Generate Proposal PDF1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Proposal PDF1": {
+      "main": [
+        [
+          {
+            "node": "Send PDF to Freelancer",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Reattach PDF",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Send PDF to Freelancer": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook7": {
+      "main": [
+        [
+          {
+            "node": "Approve Proposal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approve Proposal": {
+      "main": [
+        [
+          {
+            "node": "Is Approved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Approved": {
+      "main": [
+        [
+          {
+            "node": "Reattach PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Freelancer Rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reattach PDF": {
+      "main": [
+        [
+          {
+            "node": "Send to Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to Client": {
+      "main": [
+        [
+          {
+            "node": "Notify Freelancer Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Freelancer Sent": {
+      "main": [
+        [
+          {
+            "node": "Log Contract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "fcd06ba5-005d-4d9c-b7bb-d567c690e21f",
+  "meta": {
+    "instanceId": "bbe63525abda93c4dffbb2bab32ee46dd97dc7395c0c926270cce113ce106012"
+  },
+  "nodeGroups": [],
+  "id": "o2J7DU2DNmpM2WnG",
+  "tags": []
+}

@@ -1,0 +1,396 @@
+{
+  "name": "client onboarding fixed two",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "client-onboarding",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "75a6bd95-aa90-4a2b-995c-d71a838a0656",
+      "name": " Receive Onboarding Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "01de4437-51e6-46f1-aa4f-84dc0e5d4f6b"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || $input.first().json;\nconst cap = str => str ? str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : '';\nreturn [{\n  json: {\n    freelancer_name: cap(b.freelancer_name),\n    freelancer_email: b.freelancer_email || '',\n    client_name: cap(b.client_name),\n    client_email: b.client_email || '',\n    client_company: cap(b.client_company || ''),\n    project_type: b.project_type || '',\n    budget: b.budget || '',\n    deadline: b.deadline || '',\n    onboarding_date: new Date().toLocaleDateString('en-US', {\n      year: 'numeric',\n      month: 'long',\n      day: 'numeric'\n    }),\n    status: 'Onboarded'\n  }\n}];"
+      },
+      "id": "4e3b8396-dc88-4bd8-80cd-972acb184090",
+      "name": " Format Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.client_email }}",
+        "subject": "=Welcome to the project, {{ $json.client_name }}! Here is what happens next",
+        "message": "={{ '<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:40px;color:#111111\"><p style=\"font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#16a34a;margin-bottom:20px\">PROJECT CONFIRMED</p><h1 style=\"font-size:24px;font-weight:600;margin-bottom:24px\">Welcome! So excited to work with you.</h1><p style=\"margin-bottom:20px\">Hi <strong>' + $(' Format Data').first().json.client_name + '</strong>,</p><p style=\"margin-bottom:20px;color:#555555\">Thank you for choosing to work with me on your <strong>' + $(' Format Data').first().json.project_type + '</strong> project. I am excited to get started and deliver something you will love.</p><table style=\"width:100%;border-collapse:collapse;margin-bottom:32px\"><tr style=\"border-bottom:1px solid #eeeeee\"><td style=\"padding:12px 0;color:#999999;font-size:14px\">Project</td><td style=\"padding:12px 0;font-weight:600;text-align:right\">' + $(' Format Data').first().json.project_type + '</td></tr><tr style=\"border-bottom:1px solid #eeeeee\"><td style=\"padding:12px 0;color:#999999;font-size:14px\">Budget</td><td style=\"padding:12px 0;font-weight:600;text-align:right\">' + $(' Format Data').first().json.budget + '</td></tr><tr><td style=\"padding:12px 0;color:#999999;font-size:14px\">Deadline</td><td style=\"padding:12px 0;font-weight:600;text-align:right\">' + $(' Format Data').first().json.deadline + '</td></tr></table><p style=\"margin-bottom:16px;color:#555555\">Here is what happens next:</p><div style=\"background:#f8f8f8;border-radius:8px;padding:20px;margin-bottom:28px\"><p style=\"margin-bottom:10px\">Step 1. You will receive a short questionnaire to help me understand your vision</p><p style=\"margin-bottom:10px\">Step 2. I will review your answers and begin work on your project</p><p style=\"margin-bottom:10px\">Step 3. I will send you updates as the project progresses</p><p style=\"margin-bottom:0\">Step 4. Final delivery and your feedback</p></div><p style=\"margin-bottom:8px\">If you have any questions at any point just reply to this email.</p><p>Looking forward to working with you!</p><p style=\"margin-top:24px\">Best regards,<br><strong>' + $(' Format Data').first().json.freelancer_name + '</strong></p></div>' }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "5a0e4e51-48a0-4355-a5fd-26536b3d13a3",
+      "name": "Send Welcome Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "webhookId": "671b9c8a-21dc-441b-9524-e08f63c11c40",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cP39swVotEWfzdPL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $(' Format Data').first().json.client_email }}",
+        "subject": "=Quick questionnaire — {{ $(' Format Data').first().json.project_type }} project",
+        "message": "={{ '<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:40px;color:#111111\">' +\n'<p style=\"font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#4f46e5;margin-bottom:20px\">PROJECT BRIEF</p>' +\n'<h1 style=\"font-size:22px;font-weight:600;margin-bottom:20px\">Help me understand your vision</h1>' +\n'<p style=\"margin-bottom:16px\">Hi <strong>' + $(' Format Data').first().json.client_name + '</strong>,</p>' +\n'<p style=\"margin-bottom:24px;color:#555555\">To deliver the best possible work I need to understand your goals, preferences and expectations. Please take 5 minutes to answer these questions and reply directly to this email.</p>' +\n'<p style=\"margin-bottom:12px\">1. What is the main goal of this project?</p>' +\n'<p style=\"margin-bottom:12px\">2. Who is your target audience?</p>' +\n'<p style=\"margin-bottom:12px\">3. What brands or styles do you like and why?</p>' +\n'<p style=\"margin-bottom:12px\">4. What makes your business unique?</p>' +\n'<p style=\"margin-bottom:12px\">5. Are there any colors, styles or elements you want to avoid?</p>' +\n'<p style=\"margin-bottom:24px\">6. Any other details I should know?</p>' +\n'<p style=\"margin-bottom:8px;color:#555555\">Simply reply to this email with your answers, no special format needed.</p>' +\n'<p style=\"margin-bottom:24px\">Thank you!</p>' +\n'<p>Best regards,<br><strong>' + $(' Format Data').first().json.freelancer_name + '</strong></p>' +\n'</div>' }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "bfa4e09d-73b3-4563-a5c7-1937f49dd04b",
+      "name": "Send Project Questionnaire",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "webhookId": "0dab5d2c-fbfc-4b22-8d5c-c32aacccc9f9",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cP39swVotEWfzdPL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $(' Format Data').first().json;\nreturn [{\n  json: {\n    'onboarding date': d.onboarding_date || '',\n    'freelancer name': d.freelancer_name || '',\n    'freelancer email': d.freelancer_email || '',\n    'client name': d.client_name || '',\n    'client email': d.client_email || '',\n    'client company': d.client_company || '',\n    'project type': d.project_type || '',\n    'budget': d.budget || '',\n    'deadline': d.deadline || '',\n    'status': d.status || ''\n  }\n}];"
+      },
+      "id": "ea489a97-64e9-4131-a6e4-71ea3f943f58",
+      "name": "Build Sheet Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+          "mode": "list",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 230982680,
+          "mode": "list",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "onboarding date": "={{ $json['onboarding date'] }}",
+            "freelancer name": "={{ $json['freelancer name'] }}",
+            "client name": "={{ $json['client name'] }}",
+            "client email": "={{ $json['client email'] }}",
+            "client company": "={{ $json['client company'] }}",
+            "budget": "={{ $json.budget }}",
+            "project type": "={{ $json['project type'] }}",
+            "deadline": "={{ $json.deadline }}",
+            "status": "={{ $json.status }}",
+            "freelancer email": "={{ $json['freelancer email'] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "onboarding date",
+              "displayName": "onboarding date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "freelancer name",
+              "displayName": "freelancer name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "client name",
+              "displayName": "client name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "client email",
+              "displayName": "client email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "client company",
+              "displayName": "client company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "project type",
+              "displayName": "project type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "budget",
+              "displayName": "budget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "deadline",
+              "displayName": "deadline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "start date",
+              "displayName": "start date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "freelancer email",
+              "displayName": "freelancer email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED"
+        }
+      },
+      "id": "63d5bd05-eb61-4d0e-b5a6-5e5ebab76af8",
+      "name": "Google Sheets — Log Client",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1120,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "DejyqSQtjLq8aEOA",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $(' Format Data').first().json.freelancer_email }}",
+        "subject": "=New client onboarded — {{ $(' Format Data').first().json.client_name }} — {{ $(' Format Data').first().json.project_type }}",
+        "message": "={{ '<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:40px;color:#111111\"><p style=\"font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#16a34a;margin-bottom:20px\">NEW CLIENT ONBOARDED</p><h1 style=\"font-size:22px;font-weight:600;margin-bottom:24px\">Onboarding complete for ' + $(' Format Data').first().json.client_name + '</h1><table style=\"width:100%;border-collapse:collapse;margin-bottom:32px\"><tr style=\"border-bottom:1px solid #eeeeee\"><td style=\"padding:12px 0;color:#999999;font-size:14px\">Client</td><td style=\"padding:12px 0;font-weight:600;text-align:right\">' + $(' Format Data').first().json.client_name + '</td></tr><tr style=\"border-bottom:1px solid #eeeeee\"><td style=\"padding:12px 0;color:#999999;font-size:14px\">Company</td><td style=\"padding:12px 0;font-weight:600;text-align:right\">' + $(' Format Data').first().json.client_company + '</td></tr><tr style=\"border-bottom:1px solid #eeeeee\"><td style=\"padding:12px 0;color:#999999;font-size:14px\">Project</td><td style=\"padding:12px 0;font-weight:600;text-align:right\">' + $(' Format Data').first().json.project_type + '</td></tr><tr style=\"border-bottom:1px solid #eeeeee\"><td style=\"padding:12px 0;color:#999999;font-size:14px\">Budget</td><td style=\"padding:12px 0;font-weight:700;font-size:18px;text-align:right\">' + $(' Format Data').first().json.budget + '</td></tr><tr><td style=\"padding:12px 0;color:#999999;font-size:14px\">Deadline</td><td style=\"padding:12px 0;font-weight:600;text-align:right\">' + $(' Format Data').first().json.deadline + '</td></tr></table><div style=\"background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:14px 18px;margin-bottom:20px\"><p style=\"color:#16a34a;margin:0;font-size:14px\">Welcome email and questionnaire have been sent to ' + $(' Format Data').first().json.client_email + ' automatically.</p></div><p style=\"color:#555555\">The client details have been saved to your CRM Google Sheet.</p></div>' }}",
+        "options": {}
+      },
+      "id": "73f92360-59b4-465f-b65c-ec73f859e2e5",
+      "name": " Notify Freelancer Onboarded",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        0
+      ],
+      "webhookId": "b9fea98c-4d4d-4621-9d85-2543663084a4",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cP39swVotEWfzdPL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"success\", \"message\": \"Client onboarded successfully! Welcome email and questionnaire sent.\" }",
+        "options": {}
+      },
+      "id": "074ac70a-3067-42d3-afa7-1f4bd366b44a",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1568,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    " Receive Onboarding Request": {
+      "main": [
+        [
+          {
+            "node": " Format Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    " Format Data": {
+      "main": [
+        [
+          {
+            "node": "Send Welcome Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Welcome Email": {
+      "main": [
+        [
+          {
+            "node": "Send Project Questionnaire",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Project Questionnaire": {
+      "main": [
+        [
+          {
+            "node": "Build Sheet Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Sheet Row": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets — Log Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets — Log Client": {
+      "main": [
+        [
+          {
+            "node": " Notify Freelancer Onboarded",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    " Notify Freelancer Onboarded": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "01885129-e528-4445-9173-e0035b47a724",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bbe63525abda93c4dffbb2bab32ee46dd97dc7395c0c926270cce113ce106012"
+  },
+  "nodeGroups": [],
+  "id": "eOXOt378AiavRCcX",
+  "tags": []
+}

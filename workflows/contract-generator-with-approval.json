@@ -1,0 +1,657 @@
+{
+  "name": "contract genrator  fixed one with human in loop",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "contract-generator",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "7f41ab24-b4bd-4209-8761-a2d7701eab3f",
+      "name": " Receive Contract Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        96
+      ],
+      "webhookId": "c93e264a-c033-4ad7-a328-e6c666b93b16"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || $input.first().json;\nconst cap = str => str ? str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : '';\nreturn [{\n  json: {\n    freelancer_name: cap(b.freelancer_name),\n    freelancer_email: b.freelancer_email || '',\n    freelancer_service: cap(b.freelancer_service || ''),\n    client_name: cap(b.client_name),\n    client_email: b.client_email || '',\n    client_company: cap(b.client_company || ''),\n    project_name: b.project_name || '',\n    project_description: b.project_description || '',\n    deliverables: b.deliverables || '',\n    amount: b.amount || '',\n    payment_terms: b.payment_terms || '',\n    start_date: b.start_date || '',\n    end_date: b.end_date || '',\n    revisions: b.revisions || '2',\n    contract_date: new Date().toLocaleDateString('en-US', {\n      year: 'numeric',\n      month: 'long',\n      day: 'numeric'\n    })\n  }\n}];"
+      },
+      "id": "c8605089-475b-46b9-8755-484a6f57802c",
+      "name": " Format Contract Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "groqApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "contenet_type",
+              "value": "appilication/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"max_tokens\": 3000,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a professional freelance contract lawyer. Write a complete legally clear freelance service contract in plain English. Never use placeholder text like [ADDRESS], [DATE], [LOCATION], [SPECIFY] or [STATE]. Never add a Dated line at the top of the contract. If information is not provided write a natural professional alternative instead. For addresses write: as communicated via email. For arbitration write: a mutually agreed independent arbitration body. For governing law write: the laws of the country where the freelancer is based. For payment method write: bank transfer or online payment as agreed between both parties. Only include dates in the SIGNATURES section. Include these 14 sections with clear plain text headings and no markdown symbols like # or asterisks: 1. PARTIES 2. SCOPE OF WORK referencing the project by its name, with acceptance criteria 3. TIMELINE with milestone dates 4. PAYMENT with total amount schedule and 5% late fee after 14 days 5. REVISIONS including hourly rate for extra revisions 6. CLIENT RESPONSIBILITIES noting client delays push the timeline 7. KILL FEE of 50% remaining value if client cancels after work begins 8. INTELLECTUAL PROPERTY rights transfer on full payment freelancer keeps portfolio rights 9. INDEPENDENT CONTRACTOR status 10. CONFIDENTIALITY 11. DISPUTE RESOLUTION through negotiation then arbitration 12. TERMINATION with 14 days notice 13. GOVERNING LAW using the laws of the country where the freelancer is based 14. SIGNATURES — write exactly this and nothing else: Freelancer (NAME): _____________________________ Date: ____________ then on a new line Client (NAME): _____________________________ Date: ____________ — no extra notes no extra sentences no pre-filled dates. Write in plain clear language. No legal jargon. No markdown. Use the exact project amount provided by the user and do not change it. Use the exact start date and end date provided by the user. Do not calculate or modify dates. In the SIGNATURES section, write exactly 'Freelancer (NAME):' and 'Client (NAME):' — do not replace NAME with the actual freelancer or client names.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"={{ 'The total project amount is exactly ' + $json.amount + '. Use this exact amount in the PAYMENT section. Freelancer: ' + $json.freelancer_name + ' Service: ' + $json.freelancer_service + ' Project Name: ' + $json.project_name + ' Client: ' + $json.client_name + ' Company: ' + $json.client_company + ' Project: ' + $json.project_description + ' Deliverables: ' + $json.deliverables + ' Payment Terms: ' + $json.payment_terms + ' Start Date: ' + $json.start_date + ' End Date: ' + $json.end_date + ' Revisions: ' + $json.revisions + ' Write a complete freelance contract with all 14 sections.' }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "4bdd917c-b8eb-4d95-9c51-4475f7c71023",
+      "name": " Write Contract",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        448,
+        32
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "6rqLtOtcNuwwwVoW",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "af6c85a3-5ed6-429c-b010-e97d3e56703f",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        672,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const contractText = $input.first().json.choices[0].message.content;\nconst fields = $input.first().json;\n\nconst lines = contractText.split('\\n');\nlet htmlBody = '';\nlet currentSection = '';\nlet inList = false;\n\nfunction flushSection() {\n  if (inList) {\n    currentSection += '</ul>';\n    inList = false;\n  }\n  if (currentSection) {\n    htmlBody += '<div style=\"display:inline-block;width:100%;\">' + currentSection + '</div>';\n    currentSection = '';\n  }\n}\n\nfor (let i = 0; i < lines.length; i++) {\n  const t = lines[i].trim();\n  \n  if (!t) {\n    if (currentSection) {\n      currentSection += '<div style=\"margin:10px 0\"></div>';\n    } else {\n      htmlBody += '<div style=\"margin:10px 0\"></div>';\n    }\n    continue;\n  }\n  \n  const cleaned = t.replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>').replace(/\\*(.*?)\\*/g, '<em>$1</em>');\n  \n  const isHeading = t.match(/^\\d+\\.\\s/) || (t.length < 40 && t.split(' ').length <= 4 && !t.includes(':'));\n  const isList = t.startsWith('- ') || t.startsWith('* ');\n  const isDivider = t.match(/^_{3,}$/);\n  \n  if (isHeading) {\n    flushSection();\n    currentSection = '<h2 style=\"font-size:13px;font-weight:700;color:#111;margin-top:28px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #eee\">' + cleaned + '</h2>';\n  } else if (isList) {\n    if (!inList) {\n      currentSection += '<ul style=\"margin:0;padding-left:20px\">';\n      inList = true;\n    }\n    currentSection += '<li style=\"margin:6px 0;color:#444;font-size:14px;line-height:1.7\">' + cleaned.slice(2) + '</li>';\n  } else if (isDivider) {\n    if (inList) {\n      currentSection += '</ul>';\n      inList = false;\n    }\n    currentSection += '<div style=\"border-bottom:1px solid #111;margin:16px 0;height:24px;width:200px\"></div>';\n  } else {\n    if (inList) {\n      currentSection += '</ul>';\n      inList = false;\n    }\n    currentSection += '<p style=\"margin:8px 0;color:#444;font-size:14px;line-height:1.7\">' + cleaned + '</p>';\n  }\n}\n\nflushSection();\n\nconst header = '<div style=\"border-bottom:2px solid #111;padding-bottom:28px;margin-bottom:36px\">'\n  + '<p style=\"font-size:10px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:#999;margin-bottom:16px\">FREELANCE SERVICE CONTRACT</p>'\n  + '<h1 style=\"font-size:32px;font-weight:400;margin-bottom:12px\">' + fields.project_name + '</h1>'\n  + '<p style=\"color:#999;font-size:13px\">Between <strong style=\"color:#111\">' + fields.freelancer_name + '</strong> and <strong style=\"color:#111\">' + fields.client_name + (fields.client_company ? ' (' + fields.client_company + ')' : '') + '</strong></p>'\n  + '<p style=\"color:#999;font-size:13px;margin-top:4px\">Dated: ' + fields.contract_date + '</p>'\n  + '</div>';\nconst footer = '<hr style=\"border:none;border-top:1px solid #eee;margin-top:40px;margin-bottom:16px\">';\nconst html = '<!DOCTYPE html><html><head><meta charset=\"UTF-8\"></head><body>'\n  + '<div style=\"font-family:Georgia,serif;max-width:780px;margin:0 auto;padding:56px;color:#111\">'\n  + header\n  + htmlBody\n  + footer\n  + '</div></body></html>';\n\nreturn [{\n  json: {\n    html: html,\n    freelancer_email: fields.freelancer_email,\n    freelancer_name: fields.freelancer_name,\n    client_name: fields.client_name,\n    client_email: fields.client_email,\n    freelancer_service: fields.freelancer_service,\n    project_name: fields.project_name,\n    amount: fields.amount,\n    contract_date: fields.contract_date,\n    start_date: fields.start_date,\n    end_date: fields.end_date\n  }\n}];"
+      },
+      "id": "ab9c2c71-7bb5-4d25-8766-439badb65df1",
+      "name": "Build Contract HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.html2pdf.app/v1/generate",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "appilication/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "html",
+              "value": "={{ $json.html }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "file",
+              "outputPropertyName": "contract_pdf"
+            }
+          }
+        }
+      },
+      "id": "9c3105de-c7d3-4a1a-afac-9800c4c8d6d3",
+      "name": "Generate Contract PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1120,
+        96
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ERzfftoey6vUROWd",
+          "name": "html2pdf"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Build Contract HTML').item.json.freelancer_email }}",
+        "subject": "=Your Contract for {{ $('Build Contract HTML').item.json.freelancer_service }} with the  {{ $('Build Contract HTML').item.json.client_name }} is Ready — Please Review\n\n",
+        "message": "={{ '<div style=\"font-family:sans-serif;max-width:520px;margin:0 auto\"><h2 style=\"color:#4f46e5\">Your contract is ready for review</h2><p>Hi <strong>' + $(' Format Contract Data').first().json.freelancer_name + '</strong>,</p><p>Your AI-generated contract for <strong>' + $(' Format Contract Data').first().json.client_name + '</strong> is attached as a PDF.</p><p><strong>Review the attached PDF carefully.</strong> You will receive a separate email asking you to Approve or Decline. The contract is only sent to your client after you approve.</p><hr style=\"border:none;border-top:1px solid #e5e7eb;margin:24px 0\"></div>' }}",
+        "options": {
+          "appendAttribution": false,
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {
+                "property": "contract_pdf"
+              }
+            ]
+          }
+        }
+      },
+      "id": "73d970de-2914-420d-905b-44ae279846d6",
+      "name": " Send to Freelancer",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        96
+      ],
+      "webhookId": "28ee020f-01c1-41d2-b568-05be3d9dddb9",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cP39swVotEWfzdPL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \n  \"status\": \"success\", \n  \"message\": \"Contract generated and emailed to the freelancer for review. It will be sent to the client after the freelancer approves.\" \n}",
+        "options": {}
+      },
+      "id": "3f7515b7-ef3e-46ff-a51b-93a552815e72",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1568,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "={{ $(' Format Contract Data').first().json.freelancer_email }}",
+        "subject": "={{ 'Approve contract for ' + $(' Format Contract Data').first().json.client_name + ' before it is sent?' }}",
+        "message": "={{ '<div style=\"font-family:sans-serif;max-width:520px;margin:0 auto\"><h2 style=\"color:#4f46e5\">Review required</h2><p>Hi ' + $(' Format Contract Data').first().json.freelancer_name + ',</p><p>Please review the contract PDF that was just emailed to you for <strong>' + $(' Format Contract Data').first().json.client_name + '</strong> (project: ' + $(' Format Contract Data').first().json.project_name + ', amount: ' + $(' Format Contract Data').first().json.amount + ').</p><p>Click <strong>Approve</strong> to send it to your client, or <strong>Decline</strong> to stop it.</p></div>' }}",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double",
+            "approveLabel": "Approve & Send to Client"
+          }
+        },
+        "options": {
+          "limitWaitTime": {
+            "values": {
+              "resumeAmount": 3,
+              "resumeUnit": "days"
+            }
+          },
+          "appendAttribution": false
+        }
+      },
+      "id": "a0809a5d-5e77-4b27-8835-47a1139414a4",
+      "name": "Freelancer Review & Approve",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1568,
+        192
+      ],
+      "webhookId": "31d4289f-f805-457a-b6d0-55d34de9f700",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cP39swVotEWfzdPL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "approved",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d0e9ef3f-3b2b-47c2-ba49-ff9355910bd6",
+      "name": "Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1792,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const pdf = $('Generate Contract PDF').first().binary && $('Generate Contract PDF').first().binary.contract_pdf;\nreturn [{\n  json: $json,\n  binary: pdf ? { contract_pdf: pdf } : {}\n}];"
+      },
+      "id": "a7794d73-29b1-49cf-9f8d-e503f38fd06c",
+      "name": "Reattach PDF",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $(' Format Contract Data').first().json.client_email }}",
+        "subject": "={{ 'Freelance Contract — ' + $(' Format Contract Data').first().json.project_name }}",
+        "message": "={{ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\"><tr><td align=\"center\"><table width=\"600\" cellpadding=\"0\" cellspacing=\"0\"><tr><td style=\"padding:40px 20px;font-family:Arial,sans-serif;\"><p style=\"color:#999;font-size:11px;letter-spacing:3px;text-transform:uppercase;margin:0 0 8px;\">FREELANCE CONTRACT</p><p style=\"font-size:18px;font-weight:500;color:#333;margin:0 0 32px;\">' + $(' Format Contract Data').first().json.freelancer_service + '</p><hr style=\"border:none;border-top:2px solid #111;margin:0 0 28px;\"><p style=\"font-size:15px;line-height:1.7;color:#444;margin:0 0 16px;\">Hi ' + $(' Format Contract Data').first().json.client_name + ',</p><p style=\"font-size:15px;line-height:1.7;color:#444;margin:0 0 16px;\">Please find your freelance contract attached for <span style=\"font-weight:500;\">' + $(' Format Contract Data').first().json.freelancer_service + '</span>.</p><p style=\"font-size:15px;line-height:1.7;color:#444;margin:0 0 16px;\">Please review the attached PDF carefully. To accept this contract, simply reply to this email with the word <span style=\"color:#333;\">AGREED</span>.</p><p style=\"font-size:15px;line-height:1.7;color:#444;margin:0 0 32px;\">If you have any questions before signing, feel free to reply to this email.</p><hr style=\"border:none;border-top:1px solid #eee;margin:0 0 28px;\"><p style=\"font-size:14px;color:#444;margin:0 0 4px;\">Best regards,</p><p style=\"font-size:16px;font-weight:700;color:#111;margin:0;\">' + $(' Format Contract Data').first().json.freelancer_name + '</p></td></tr></table></td></tr></table>' }}",
+        "options": {
+          "appendAttribution": false,
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {
+                "property": "contract_pdf"
+              }
+            ]
+          }
+        }
+      },
+      "id": "d5e3e979-35b9-4b12-b7ea-03dfdf46ad85",
+      "name": " Send to Client",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        96
+      ],
+      "webhookId": "a49cc409-0416-4a0c-ab31-17dafb418444",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cP39swVotEWfzdPL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $(' Format Contract Data').first().json.freelancer_email }}",
+        "subject": "={{ 'Contract sent to ' + $(' Format Contract Data').first().json.client_name }}\n\n",
+        "message": "={{ '<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:40px;color:#111111\"><p style=\"font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#16a34a;margin-bottom:20px\">CONTRACT SENT</p><h1 style=\"font-size:22px;font-weight:600;margin-bottom:28px\">Contract for ' + $('Merge').first().json.project_name + ' has been sent</h1><table style=\"width:100%;border-collapse:collapse;margin-bottom:32px\"><tr style=\"border-bottom:1px solid #eeeeee\"><td style=\"padding:12px 0;color:#999999;font-size:14px\">Client</td><td style=\"padding:12px 0;font-weight:600;text-align:right\">' + $('Merge').first().json.client_name + '</td></tr><tr style=\"border-bottom:1px solid #eeeeee\"><td style=\"padding:12px 0;color:#999999;font-size:14px\">Project</td><td style=\"padding:12px 0;font-weight:600;text-align:right\">' + $('Merge').first().json.project_name + '</td></tr><tr style=\"border-bottom:1px solid #eeeeee\"><td style=\"padding:12px 0;color:#999999;font-size:14px\">Amount</td><td style=\"padding:12px 0;font-weight:700;font-size:20px;text-align:right\">' + $('Merge').first().json.amount + '</td></tr><tr><td style=\"padding:12px 0;color:#999999;font-size:14px\">Service</td><td style=\"padding:12px 0;font-weight:600;text-align:right\">' + $('Merge').first().json.freelancer_service + '</td></tr></table><div style=\"background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:14px 18px\"><p style=\"color:#16a34a;margin:0;font-size:14px\">Your contract has been delivered to your client for review.</p></div></div>' }}",
+        "options": {}
+      },
+      "id": "39578b90-5cde-4269-bff6-f973b045f18e",
+      "name": "Notify Freelancer Sent",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        2464,
+        96
+      ],
+      "webhookId": "73a9fd30-ad0d-48ea-afb3-688fe2e42ad6",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cP39swVotEWfzdPL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+          "mode": "list",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1818962651,
+          "mode": "list",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "freelancer name": "={{ $(' Format Contract Data').item.json.freelancer_name }}",
+            "freelancer email": "={{ $(' Format Contract Data').item.json.freelancer_email }}",
+            "client name": "={{ $(' Format Contract Data').item.json.client_name }}",
+            "client email": "={{ $(' Format Contract Data').item.json.client_email }}",
+            "freelancer service": "={{ $(' Format Contract Data').item.json.freelancer_service }}",
+            "amount": "={{ $(' Format Contract Data').item.json.amount }}",
+            "contract date": "={{ $(' Format Contract Data').item.json.contract_date }}",
+            "start date": "={{ $(' Format Contract Data').item.json.start_date }}",
+            "end date": "={{ $(' Format Contract Data').item.json.end_date }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "freelancer name",
+              "displayName": "freelancer name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "freelancer email",
+              "displayName": "freelancer email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "client name",
+              "displayName": "client name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "client email",
+              "displayName": "client email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "freelancer service",
+              "displayName": "freelancer service",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "amount",
+              "displayName": "amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "contract date",
+              "displayName": "contract date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "start date",
+              "displayName": "start date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "end date",
+              "displayName": "end date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "bee4999b-e409-4cd9-8ebe-f12f000a4478",
+      "name": " Log Contract",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        2688,
+        96
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "DejyqSQtjLq8aEOA",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $(' Format Contract Data').first().json.freelancer_email }}",
+        "subject": "={{ 'Contract for ' + $(' Format Contract Data').first().json.client_name + ' was NOT sent' }}",
+        "message": "={{ '<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:40px;color:#111111\"><p style=\"font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#dc2626;margin-bottom:20px\">CONTRACT DECLINED</p><h1 style=\"font-size:22px;font-weight:600;margin-bottom:20px\">You declined the contract for ' + $(' Format Contract Data').first().json.client_name + '</h1><p style=\"font-size:15px;line-height:1.7;color:#444\">The contract was <strong>not</strong> sent to your client. Make any changes you need and re-run the generator to produce an updated version.</p></div>' }}",
+        "options": {}
+      },
+      "id": "44d3f151-a69d-4cb2-9545-42f7169c4a68",
+      "name": "Notify Declined",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        288
+      ],
+      "webhookId": "d2414b0f-6b89-4072-88b9-41b340d47701",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cP39swVotEWfzdPL",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    " Receive Contract Request": {
+      "main": [
+        [
+          {
+            "node": " Format Contract Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    " Format Contract Data": {
+      "main": [
+        [
+          {
+            "node": " Write Contract",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    " Write Contract": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Build Contract HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Contract HTML": {
+      "main": [
+        [
+          {
+            "node": "Generate Contract PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Contract PDF": {
+      "main": [
+        [
+          {
+            "node": " Send to Freelancer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    " Send to Freelancer": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Freelancer Review & Approve",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Freelancer Review & Approve": {
+      "main": [
+        [
+          {
+            "node": "Approved?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approved?": {
+      "main": [
+        [
+          {
+            "node": "Reattach PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Declined",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reattach PDF": {
+      "main": [
+        [
+          {
+            "node": " Send to Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    " Send to Client": {
+      "main": [
+        [
+          {
+            "node": "Notify Freelancer Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Freelancer Sent": {
+      "main": [
+        [
+          {
+            "node": " Log Contract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "7ad3d5a7-83a7-4ad0-a44c-474af3f07891",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bbe63525abda93c4dffbb2bab32ee46dd97dc7395c0c926270cce113ce106012"
+  },
+  "nodeGroups": [],
+  "id": "9rt6OvHwj9au2xhM",
+  "tags": []
+}
