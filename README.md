@@ -1,4 +1,4 @@
-# ✦ Clientpen, The Free Freelancer OS
+# ✦ Clientpen
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![n8n](https://img.shields.io/badge/built%20with-n8n-orange.svg)
@@ -9,7 +9,8 @@
 
 Fill in a form. AI writes the document. It gets emailed, logged, and tracked automatically. No subscriptions, no SaaS lock-in, no third party holding your client data.
 
-![Clientpen form](./assets/images/form.png)
+<img width="945" height="909" alt="form" src="https://github.com/user-attachments/assets/356ea96e-6fa0-4223-aa94-7afd0a1a17c0" />
+
 
 ---
 
@@ -25,6 +26,7 @@ Fill in a form. AI writes the document. It gets emailed, logged, and tracked aut
 - [Running n8n 24/7](#running-n8n-247)
 - [Built With](#built-with)
 - [Known Limitations](#known-limitations)
+- [Security Notes](#security-notes)
 - [Troubleshooting](#troubleshooting)
 - [Need Help?](#need-help)
 - [Contributing](#contributing)
@@ -62,8 +64,6 @@ Clientpen turns each of these into a single form submission. You type what you k
 | ⭐ **Testimonial Collector** | Sends a warm, specific request for a testimonial once a project wraps up |
 
 Each tool is a separate, independent n8n workflow with its own webhook. Import only the ones you actually want to use.
-
-> **Optional:** A human-in-the-loop version of both Proposal Generator and Contract Generator is also included. These pause for your review before sending anything to the client — use these if you prefer to check the AI output first on every submission.
 
 ---
 
@@ -167,6 +167,25 @@ Being upfront about what this doesn't do yet:
 
 ---
 
+## Security Notes
+
+This is a lightweight, self-serve tool. A few things worth knowing before you deploy it publicly:
+
+- **Your webhook URLs are the first layer of access control.** Anyone who has your Production URL can submit data to that workflow. Don't share your real webhook URLs publicly (screenshots, forum posts, commits), and treat them like a lightweight secret.
+- **Optional second layer: a shared passphrase, checked with an IF node.** The form has an optional "Webhook passphrase" field in Settings. If you set one, it gets included as a normal field in every submission (not an HTTP header, since that approach breaks in browsers due to CORS preflight restrictions, so don't use n8n's built-in Header Auth here).
+
+  Example of setting this up end to end:
+  1. Pick your own secret value, e.g. `myproject_9xQ2` (anything long and hard to guess).
+  2. In each n8n workflow, add an **IF node** right after the Webhook node, checking that `{{ $json.body.passphrase }}` equals `myproject_9xQ2`.
+  3. Wire the *true* path to continue as normal, and the *false* path to a **Respond to Webhook** node returning something like `{ "status": "unauthorized" }`, so mismatched submissions get rejected cleanly instead of running.
+  4. Open `clientpen-form.html` → Settings → paste that same `myproject_9xQ2` into the "Webhook passphrase" field. It saves automatically in your browser and gets sent with every submission from then on.
+  5. Repeat the IF node setup (steps 2–3) in each of your 6 workflows, reusing the same passphrase everywhere.
+- **No login or authentication system exists on the form itself**, by design, to keep this simple and free. The passphrase above is the closest equivalent: it's a shared secret, not per-user accounts.
+- **Never hardcode API keys or secrets into the HTML form.** All credentials (Groq, Gmail, Google Sheets) should only ever be connected inside n8n itself, never inside `clientpen-form.html`.
+- **This applies whether you're self-hosted or on n8n Cloud** since both handle credentials, IF nodes, and webhook exposure identically. n8n Cloud runs workflows continuously with no manual steps required, same as a properly configured self-hosted instance; neither hosting type is inherently more or less secure than the other for this setup.
+
+---
+
 ## Troubleshooting
 
 **Same test data every time, even after changing the form**
@@ -180,6 +199,15 @@ An HTTP Request node (like the Groq call) between the two nodes can break named 
 
 **Webhook returns "not registered" in production**
 Workflow needs to be Active, and you need the Production URL, not the Test URL.
+
+**Form shows a generic failure but nothing shows up in n8n's Executions tab**
+The request never reached n8n. Double check the Production URL was actually pasted into the correct tool's field in Settings, and that you're testing the form via a real address (`http://` or `https://`) rather than opening the HTML file directly, since some browsers block requests from a raw `file://` page due to security restrictions.
+
+**Webhook returns a 403 error**
+This almost always means Header Auth is still enabled on the Webhook node's Authentication setting. Set it back to **None**. This project uses a body-level passphrase checked with an IF node instead (see Security Notes above), since Header Auth doesn't work reliably from a plain browser form.
+
+**Test URL keeps showing even after activating the workflow**
+This is a known n8n editor quirk, not something wrong with your setup. Copy the URL directly from inside the Webhook node right before testing, and confirm the URL text itself contains `/webhook/` rather than `/webhook-test/`. If it's still stuck, deactivate the workflow, reactivate it, and copy the URL fresh, or duplicate the workflow into a new one if the issue persists.
 
 ---
 
