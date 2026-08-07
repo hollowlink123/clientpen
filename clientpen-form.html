@@ -1952,6 +1952,29 @@ input[type=range]::-moz-range-thumb{
         </div>
       </div>
 
+      <div class="card" style="margin-top:18px">
+        <div class="card-h">
+          <div class="card-h-ic" style="background:var(--accent-bg);color:var(--accent)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <div>
+            <div class="card-h-t">Webhook passphrase (optional)</div>
+            <div class="card-h-s">A shared secret checked inside your n8n workflow, not a header</div>
+          </div>
+        </div>
+        <div class="card-b">
+          <div class="fg">
+            <label class="fl">Passphrase</label>
+            <input class="fi" type="password" id="p-auth-token" placeholder="Leave blank if you don't want this check" oninput="sat(this.value)">
+          </div>
+          <p style="font-size:12px;color:var(--text-3);margin-top:8px;margin-bottom:0;line-height:1.6">
+            This value is sent as a normal field inside the form submission (not an HTTP header), so it works reliably from a plain browser page. Add an IF node right after your Webhook node in n8n that checks the incoming <code>passphrase</code> field matches this value before continuing.
+            <br><br>
+            <b>Privacy note:</b> Your webhook URLs and passphrase are stored only in this browser's localStorage (never sent anywhere except to your own n8n instance). If you share this computer or the HTML file, clear your profile first. No data is ever sent to Clientpen servers — this is a 100% frontend, self-hosted tool.
+          </p>
+        </div>
+      </div>
+
       <div style="display:flex;gap:8px;margin-top:18px">
         <button class="sbtn" id="prof-save" onclick="saveProfile()" style="flex:1">
           <span class="sbtn-icon">
@@ -2011,6 +2034,7 @@ const STORAGE = 'mp_v2_state';
 const defaultState = {
   profile: { name:'', email:'', service:'' },
   webhooks: { pr:'', con:'', inv:'', ob:'', up:'', tm:'' },
+  authToken: '',
 };
 let state;
 try{
@@ -2020,6 +2044,7 @@ try{
   // merge missing keys gracefully
   state.profile  = Object.assign({}, defaultState.profile,  state.profile  || {});
   state.webhooks = Object.assign({}, defaultState.webhooks, state.webhooks || {});
+  if(typeof state.authToken !== 'string') state.authToken = '';
 }catch(e){ state = JSON.parse(JSON.stringify(defaultState)); }
 
 /* NOTE: Webhook URLs and profile are saved to this browser's localStorage.
@@ -2100,6 +2125,11 @@ function swh(k,v){
   // sync profile modal field if relevant
   const profField = document.getElementById('p-wh-'+k);
   if(profField && profField.value !== clean) profField.value = clean;
+}
+
+function sat(v){
+  state.authToken = (v||'').trim();
+  persist();
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -2324,14 +2354,45 @@ async function sub(k){
   btn.disabled = true;
   lbl.innerHTML = '<div class="spin"></div>&nbsp;Working…';
 
-  ht(k, 'tl');
+    ht(k, 'tl');
 
   try{
+    // SECURITY: block sending client PII over unencrypted HTTP
+    const isLocal = wh.includes('localhost') || wh.includes('127.0.0.1');
+    if(!wh.startsWith('https://') && !isLocal){
+      throw new Error('Webhook URL must use HTTPS (https://) to protect client data. Localhost is allowed for testing.');
+    }
+
+    const fetchHeaders = {'Content-Type':'application/json'};
+    // Passphrase sent inside the request body instead of a custom header.
+    // A custom Authorization header triggers a CORS preflight request that
+    // most n8n webhook setups aren't configured to allow, which is why the
+    // header-based approach was unreliable from a plain browser form.
+    // Sending it as a normal body field avoids that problem entirely —
+    // check it inside your n8n workflow with an IF node instead.
+    const payloadWithAuth = state.authToken
+      ? Object.assign({}, p, { passphrase: state.authToken })
+      : p;
+
+    // Timeout so the button doesn't hang forever if n8n is stuck
+    const ctrl = new AbortController();
+    const timeoutId = setTimeout(() => ctrl.abort(), 15000);
+    
     const r = await fetch(wh, {
       method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(p)
+      headers: fetchHeaders,
+      body:JSON.stringify(payloadWithAuth),
+      signal: ctrl.signal
     });
+    clearTimeout(timeoutId);
+    
+    // CRITICAL FIX: check if n8n actually accepted the request (200-299)
+    if(!r.ok){
+      let errMsg = 'Webhook returned error ' + r.status;
+      try{ const ed = await r.json(); errMsg = ed.message || errMsg; }catch(_){}
+      throw new Error(errMsg);
+    }
+    
     let d = {};
     try{ d = await r.json(); }catch(_){ d = {}; }
     ht(k, 'tok', d.message || 'Done. Your automation is running.');
@@ -2343,7 +2404,9 @@ async function sub(k){
       btn.disabled = false;
     }, 5000);
   } catch(err){
-    ht(k, 'ter', 'Couldn\'t reach your n8n workflow. Make sure it is Published (not just saved) and the webhook URL is correct.');
+    let msg = err.message || 'Could not reach your n8n workflow.';
+    if(err.name === 'AbortError') msg = 'Request timed out after 15s. Is n8n running?';
+    ht(k, 'ter', msg);
     btn.disabled = false;
     lbl.innerHTML = orig;
   }
@@ -2361,6 +2424,9 @@ function init(){
     const ok = document.getElementById(k+'-whc');
     if(ok) ok.classList.toggle('hide', !url.startsWith('http'));
   });
+  // hydrate passphrase field
+  const authEl = document.getElementById('p-auth-token');
+  if(authEl) authEl.value = state.authToken || '';
   // default dates: today
   const today = new Date().toISOString().split('T')[0];
   ['inv-due','con-start','con-end','up-week'].forEach(id=>{
