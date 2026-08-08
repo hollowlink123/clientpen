@@ -9,7 +9,7 @@
 
 Fill in a form. AI writes the document. It gets emailed, logged, and tracked automatically. No subscriptions, no SaaS lock-in, no third party holding your client data.
 
-<img width="945" height="909" alt="form" src="https://github.com/user-attachments/assets/356ea96e-6fa0-4223-aa94-7afd0a1a17c0" />
+<img width="945" height="909" alt="form" src="https://github.com/user-attachments/assets/d87c8712-e042-4286-94ee-64e4019fa343" />
 
 
 ---
@@ -65,6 +65,8 @@ Clientpen turns each of these into a single form submission. You type what you k
 
 Each tool is a separate, independent n8n workflow with its own webhook. Import only the ones you actually want to use.
 
+**Optional: human-in-the-loop versions.** Proposal Generator and Contract Generator both send straight to the client by default, no review step. If you'd rather approve documents yourself before they go out, `proposal-generator-with-approval.json` and `contract-generator-with-approval.json` add a review step: the drafted PDF is emailed to you first, and only sends to the client after you approve it. Reject it instead, and the client never sees it. These are optional drop-in replacements, same webhook pattern, same form fields, just with an approval gate added.
+
 ---
 
 ## Repository Structure
@@ -73,7 +75,9 @@ Each tool is a separate, independent n8n workflow with its own webhook. Import o
 clientpen/
 ├── workflows/
 │   ├── proposal-generator.json
+│   ├── proposal-generator-with-approval.json
 │   ├── contract-generator.json
+│   ├── contract-generator-with-approval.json
 │   ├── invoice-chaser.json
 │   ├── client-onboarding.json
 │   ├── weekly-update-bot.json
@@ -84,7 +88,8 @@ clientpen/
 │       └── proposal-example.png
 ├── clientpen-form.html
 ├── README.md
-└── LICENSE
+├── LICENSE
+└── .gitignore
 ```
 
 ---
